@@ -17,18 +17,16 @@ import (
 )
 
 type SaluteSpeechApi struct {
-	ApiHost           string
-	RepetitionPenalty int
-	TopP              float32
-	Model             string
-	MaxTokens         int
-	Temperature       float32
-	AuthData          string
+	AudioType int
+	Voice     string
 }
 
 func NewSaluteSpeechApi() *SaluteSpeechApi {
 	// Cоздает новый обьект SaluteSpeechApi
-	return &SaluteSpeechApi{}
+	return &SaluteSpeechApi{
+		AudioType: 0,
+		Voice:     "",
+	}
 }
 func (s *SaluteSpeechApi) getExpiresFilename() string {
 	return ".salute_speech_expires"
@@ -118,9 +116,20 @@ func (s *SaluteSpeechApi) Auth() (int64, string) {
 func (s *SaluteSpeechApi) Recognize(filename string) (string, error) {
 	url := SaluteSpeechApiRestURL + "speech:recognize"
 	file, _ := os.Open(filename)
+	if s.AudioType == 0 {
+		return "", errors.New("AudioType not set")
+	}
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	request, _ := http.NewRequest("POST", url, file)
-	request.Header.Set("Content-Type", "audio/ogg;codecs=opus")
+	if s.AudioType == AudioTypeMP3 {
+		request.Header.Set("Content-Type", "audio/ogg;codecs=opus")
+	} else if s.AudioType == AudioTypeOGG {
+		request.Header.Set("Content-Type", "audio/ogg;codecs=opus")
+	} else if s.AudioType == AudioTypeWAV {
+		request.Header.Set("Content-Type", "audio/ogg;codecs=opus")
+	} else {
+		return "", errors.New("AudioType is not valid")
+	}
 	request.Header.Set("Authorization", "Bearer "+s.getCurrentToken())
 	client := &http.Client{}
 	log.Println(request)
@@ -148,7 +157,17 @@ func (s *SaluteSpeechApi) Recognize(filename string) (string, error) {
 
 }
 func (s *SaluteSpeechApi) Synthesize(text2speech string) (io.Reader, error) {
-	url := SaluteSpeechApiRestURL + "text:synthesize?format=opus&voice=Ost_24000"
+	var format string
+	if s.AudioType == AudioTypeMP3 {
+		format = ""
+	} else if s.AudioType == AudioTypeOGG {
+		format = ""
+	} else if s.AudioType == AudioTypeWAV {
+		format = ""
+	} else {
+		return nil, errors.New("AudioType is not valid")
+	}
+	url := SaluteSpeechApiRestURL + "text:synthesize?format=" + format + "&voice=Ost_24000"
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	request, _ := http.NewRequest("POST", url, strings.NewReader(text2speech))
 	request.Header.Set("Content-Type", "application/text")
