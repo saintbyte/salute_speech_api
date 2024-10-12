@@ -121,38 +121,7 @@ func (s *SaluteSpeechApi) Recognize(filename string) (string, error) {
 	}
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	request, _ := http.NewRequest("POST", url, file)
-	/*
-		PCM_S16LE
-		PCM signed 16bit little-endian, с заголовком WAV или без.
-		Частота дискретизации – от 8 до 96 кГц. Если без заголовка, то параметр sample_rate – обязательный.
-		Максимальное количество каналов – 8.
-		Значение Content-Type – audio/x-pcm;bit=16;rate=XXX.
-		OPUS
-		Opus в контейнере ogg.
-		Параметр sample_rate – необязательный.
-		Поддерживается только одноканальный звук.
-		Значение Content-Type – audio/ogg;codecs=opus.
-		MP3
-		MP3.
-		Параметр sample_rate – необязательный.
-		Максимальное количество каналов – 2.
-		Значение Content-Type – audio/mpeg.
-		FLAC
-		FLAC
-		Параметр sample_rate – необязательный.
-		Максимальное количество каналов – 8.
-		Значение Content-Type – audio/flac.
-		ALAW
-		G.711 A-law, с заголовком WAV или без.
-		Частота дискретизации – от 8 до 96 кГц. Если без заголовка, то параметр sample_rate – обязательный.
-		Максимальное количество каналов – 8.
-		Значение Content-Type – audio/pcma;rate=XXX.
-		MULAW
-		G.711 μ-law, с заголовком WAV или без.
-		Частота дискретизации – от 8 до 96 кГц. Если без заголовка, то параметр sample_rate – обязательный.
-		Максимальное количество каналов – 8.
-		Значение Content-Type – audio/pcmu;rate=XXX.
-	*/
+
 	if s.AudioType == AudioTypeMP3 {
 		request.Header.Set("Content-Type", "audio/mpeg")
 	} else if s.AudioType == AudioTypeOGG {
