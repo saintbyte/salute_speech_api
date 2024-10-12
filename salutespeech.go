@@ -154,7 +154,7 @@ func (s *SaluteSpeechApi) Recognize(filename string) (string, error) {
 		Значение Content-Type – audio/pcmu;rate=XXX.
 	*/
 	if s.AudioType == AudioTypeMP3 {
-		request.Header.Set("Content-Type", "audio/ogg;codecs=opus")
+		request.Header.Set("Content-Type", "audio/mpeg")
 	} else if s.AudioType == AudioTypeOGG {
 		request.Header.Set("Content-Type", "audio/ogg;codecs=opus")
 	} else if s.AudioType == AudioTypeWAV {
