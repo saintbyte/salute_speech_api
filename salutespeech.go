@@ -17,15 +17,19 @@ import (
 )
 
 type SaluteSpeechApi struct {
-	AudioType int
-	Voice     string
+	AudioType         int
+	Voice             string
+	Rate              int
+	ValidateVoiceName bool
 }
 
 func NewSaluteSpeechApi() *SaluteSpeechApi {
 	// Cоздает новый обьект SaluteSpeechApi
 	return &SaluteSpeechApi{
-		AudioType: 0,
-		Voice:     "",
+		AudioType:         0,
+		Voice:             "",
+		Rate:              0,
+		ValidateVoiceName: true,
 	}
 }
 func (s *SaluteSpeechApi) getExpiresFilename() string {
