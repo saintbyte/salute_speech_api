@@ -11,12 +11,12 @@ type SpeechRecognizeAnswer struct {
 		Negative float64 `json:"negative"`
 		Neutral  float64 `json:"neutral"`
 		Positive float64 `json:"positive"`
-	} `json:"emotions"`
+	} `json:"emotions,omitempty"`
 	PersonIdentity struct {
 		Age         string `json:"age"`
 		Gender      string `json:"gender"`
 		AgeScore    int    `json:"age_score"`
 		GenderScore int    `json:"gender_score"`
-	} `json:"person_identity"`
+	} `json:"person_identity,omitempty"`
 	Status int `json:"status"`
 }
