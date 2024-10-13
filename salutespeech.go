@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/nu7hatch/gouuid"
 	"io"
 	"log"
@@ -27,11 +26,10 @@ type SaluteSpeechApi struct {
 func NewSaluteSpeechApi() *SaluteSpeechApi {
 	// Cоздает новый обьект SaluteSpeechApi
 	return &SaluteSpeechApi{
-		AudioType:         "",
-		Voice:             nil,
-		Rate:              0,
-		ValidateVoiceName: true,
-		Debug:             true,
+		AudioType: "",
+		Voice:     nil,
+		Rate:      0,
+		Debug:     false,
 	}
 }
 
@@ -146,6 +144,7 @@ func (s *SaluteSpeechApi) getUuid() string {
 	return u.String()
 }
 func (s *SaluteSpeechApi) GetVoiceById(voice_id string) *Voice {
+	// Получить голос по id. ID смотри фокуметации к параметру voice у synthesize
 	voices := SaluteSpeechVoices()
 	for _, oneVoice := range voices {
 		if oneVoice.Id == voice_id {
@@ -168,7 +167,7 @@ func (s *SaluteSpeechApi) getCurrentToken() string {
 	return token
 }
 func (s *SaluteSpeechApi) Auth() (int64, string) {
-	//Получить токен для авторизации.
+	//Получить токен для авторизации. В основном происходит автоматически - но вдруг кто-то захочет делать это сам.
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	request, _ := http.NewRequest("POST", SaluteSpeechOauthUrl, bytes.NewBufferString("scope=SALUTE_SPEECH_PERS"))
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -202,7 +201,9 @@ func (s *SaluteSpeechApi) Auth() (int64, string) {
 		}
 		return 0, ""
 	}
-	fmt.Println(string(body))
+	if s.Debug {
+		log.Println(string(body))
+	}
 	defer response.Body.Close()
 
 	var result TokenResponse
@@ -295,4 +296,28 @@ func (s *SaluteSpeechApi) Synthesize(text2speech_or_ssml string) (io.Reader, err
 		return nil, errors.New("Response is not ok. Status code:" + string(response.StatusCode))
 	}
 	return response.Body, nil
+}
+
+func (s *SaluteSpeechApi) SynthesizeToFile(filename string, text2speech_or_ssml string) error {
+	// Синтезирует текст в звуковой файл.
+	data, err := s.Synthesize(text2speech_or_ssml)
+	file, err := os.OpenFile(os.Args[1], os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0666)
+	defer file.Close()
+	if err != nil {
+		return err
+	}
+	buf := make([]byte, 1024)
+	for {
+		n, err := data.Read(buf)
+		if err != nil && err != io.EOF {
+			return err
+		}
+		if n == 0 {
+			break
+		}
+		if _, err := file.Write(buf[:n]); err != nil {
+			return err
+		}
+	}
+	return nil
 }
