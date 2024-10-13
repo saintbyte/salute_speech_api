@@ -99,8 +99,13 @@ func (s *SaluteSpeechApi) getTokenFilename() string {
 }
 
 func (s *SaluteSpeechApi) isSSML(src_string string) bool {
-	// <speak
-	// <?xml
+	// Определяем по текст ssml это
+	if src_string[0:6] == "<speak" {
+		return true
+	}
+	if src_string[0:5] == "<?xml" {
+		return true
+	}
 	return false
 }
 func (s *SaluteSpeechApi) getExpiresAtFromFile() int64 {
@@ -140,7 +145,15 @@ func (s *SaluteSpeechApi) getUuid() string {
 	}
 	return u.String()
 }
-
+func (s *SaluteSpeechApi) GetVoiceById(voice_id string) *Voice {
+	voices := SaluteSpeechVoices()
+	for _, oneVoice := range voices {
+		if oneVoice.Id == voice_id {
+			return &oneVoice
+		}
+	}
+	return nil
+}
 func (s *SaluteSpeechApi) getCurrentToken() string {
 	expAt := s.getExpiresAtFromFile()
 	token := s.getTokenFromFile()
@@ -204,11 +217,10 @@ func (s *SaluteSpeechApi) Auth() (int64, string) {
 	return result.ExpiresAt, result.AccessToken
 }
 
-func (s *SaluteSpeechApi) Recognize(filename string) (*SpeechRecognizeAnswer, error) {
-	url := SaluteSpeechApiRestURL + "speech:recognize"
-	file, _ := os.Open(filename)
+func (s *SaluteSpeechApi) Recognize(data io.Reader) (*SpeechRecognizeAnswer, error) {
+	// Распознать данные из аудио.
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	request, _ := http.NewRequest("POST", url, file)
+	request, _ := http.NewRequest("POST", SaluteSpeechApiRestURL+"speech:recognize", data)
 	if s.needRate(s.AudioType) && s.Rate == 0 {
 		return nil, errors.New("Need set Rate for this audiotype")
 	}
@@ -239,8 +251,17 @@ func (s *SaluteSpeechApi) Recognize(filename string) (*SpeechRecognizeAnswer, er
 	}
 	defer response.Body.Close()
 	return &result, nil
-
 }
+func (s *SaluteSpeechApi) RecognizeFile(filename string) (*SpeechRecognizeAnswer, error) {
+	// Распознать данные из файла. Руками надо выставить AudioType, Rate
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	return s.Recognize(file)
+}
+
 func (s *SaluteSpeechApi) Synthesize(text2speech_or_ssml string) (io.Reader, error) {
 	// Создать звук из текста ,
 	// проверяем AudioType и Rate - они другие и не подходят
@@ -249,7 +270,7 @@ func (s *SaluteSpeechApi) Synthesize(text2speech_or_ssml string) (io.Reader, err
 	if format == "" {
 		return nil, errors.New("OutputAudioType is not valid")
 	}
-	url := SaluteSpeechApiRestURL + "text:synthesize?format=" + format + "&voice=Ost_24000"
+	url := SaluteSpeechApiRestURL + "text:synthesize?format=" + format + "&voice=" + s.Voice.Id
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	request, _ := http.NewRequest("POST", url, strings.NewReader(text2speech_or_ssml))
 	if s.isSSML(text2speech_or_ssml) {
@@ -260,12 +281,18 @@ func (s *SaluteSpeechApi) Synthesize(text2speech_or_ssml string) (io.Reader, err
 	request.Header.Set("Authorization", "Bearer "+s.getCurrentToken())
 	request.Header.Set("X-Request-ID", s.getUuid())
 	client := &http.Client{}
-	log.Println(request)
+	if s.Debug {
+		log.Println(request)
+	}
 	response, e := client.Do(request)
-	log.Println(response.StatusCode)
+	if s.Debug {
+		log.Println(response.StatusCode)
+	}
 	if response.StatusCode != http.StatusOK {
-		log.Println(e)
-		return nil, errors.New("Response is not ok")
+		if s.Debug {
+			log.Println(e)
+		}
+		return nil, errors.New("Response is not ok. Status code:" + string(response.StatusCode))
 	}
 	return response.Body, nil
 }
