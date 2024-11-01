@@ -301,7 +301,10 @@ func (s *SaluteSpeechApi) Synthesize(text2speech_or_ssml string) (io.Reader, err
 func (s *SaluteSpeechApi) SynthesizeToFile(filename string, text2speech_or_ssml string) error {
 	// Синтезирует текст в звуковой файл.
 	data, err := s.Synthesize(text2speech_or_ssml)
-	file, err := os.OpenFile(os.Args[1], os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		return err
+	}
+	file, err := os.OpenFile(filename, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0666)
 	defer file.Close()
 	if err != nil {
 		return err
